@@ -86,6 +86,13 @@ export const turingTokensConfig: Record<string, ExtendedToken> = {
 		ed: "1000000",
 		toRaw: () => 9,
 	},
+	SBY: {
+		name: "SBY",
+		symbol: "SBY",
+		decimals: 18,
+		ed: "1000000",
+		toRaw: () => 9,
+	},
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
