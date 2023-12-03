@@ -51,48 +51,180 @@ export const turingRouteConfigs = createRouteConfigs("turing", [
 ]);
 
 export const turingTokensConfig: Record<string, ExtendedToken> = {
-	TUR: {
-		name: "TUR",
-		symbol: "TUR",
-		decimals: 10,
-		ed: "100000000",
-		toRaw: () => "0",
-	},
-	KAR: {
-		name: "KAR",
-		symbol: "KAR",
-		decimals: 12,
-		ed: "100000000000",
-		toRaw: () => "3",
-	},
-	KUSD: {
-		name: "KUSD",
-		symbol: "KUSD",
-		decimals: 12,
-		ed: "10000000000",
-		toRaw: () => "2",
-	},
-	LKSM: {
-		name: "LKSM",
-		symbol: "LKSM",
-		decimals: 12,
-		ed: "500000000",
-		toRaw: () => "4",
-	},
-	RSTR: {
-		name: "RSTR",
-		symbol: "RSTR",
-		decimals: 18,
-		ed: "1000000",
-		toRaw: () => 9,
-	},
-	SBY: {
-		name: "SBY",
-		symbol: "SBY",
-		decimals: 18,
-		ed: "1000000",
-		toRaw: () => 9,
-	},
+  PHA: {
+    name: "PHA",
+    symbol: "PHA",
+    decimals: 12,
+    ed: "10000000000",
+    toRaw: () => "7",
+  },
+  HKO: {
+    name: "HKO",
+    symbol: "HKO",
+    decimals: 12,
+    ed: "500000000000",
+    toRaw: () => "5",
+  },
+  SDN: {
+    name: "SDN",
+    symbol: "SDN",
+    decimals: 18,
+    ed: "10000000000000000",
+    toRaw: () => "8",
+  },
+  KSM: {
+    name: "KSM",
+    symbol: "KSM",
+    decimals: 12,
+    ed: "100000000",
+    toRaw: () => "1",
+  },
+  MOVR: {
+    name: "MOVR",
+    symbol: "MOVR",
+    decimals: 18,
+    ed: "0",
+    toRaw: () => "9",
+  },
+  AUSD: {
+    name: "AUSD",
+    symbol: "AUSD",
+    decimals: 12,
+    ed: "10000000000",
+    toRaw: () => "2",
+  },
+  TUR: {
+    name: "TUR",
+    symbol: "TUR",
+    decimals: 10,
+    ed: "100000000",
+    toRaw: () => "0",
+  },
+  SKSM: {
+    name: "SKSM",
+    symbol: "SKSM",
+    decimals: 12,
+    ed: "500000000",
+    toRaw: () => "6",
+  },
+  KAR: {
+    name: "KAR",
+    symbol: "KAR",
+    decimals: 12,
+    ed: "100000000000",
+    toRaw: () => "3",
+  },
+  LKSM: {
+    name: "LKSM",
+    symbol: "LKSM",
+    decimals: 12,
+    ed: "500000000",
+    toRaw: () => "4",
+  },
+};
+
+export const turingStagingTokensConfig: Record<string, ExtendedToken> = {
+  PHA: {
+    name: "PHA",
+    symbol: "PHA",
+    decimals: 12,
+    ed: "10000000000",
+    toRaw: () => "7",
+  },
+  HKO: {
+    name: "HKO",
+    symbol: "HKO",
+    decimals: 12,
+    ed: "500000000000",
+    toRaw: () => "5",
+  },
+  SDN: {
+    name: "SDN",
+    symbol: "SDN",
+    decimals: 18,
+    ed: "10000000000000000",
+    toRaw: () => "8",
+  },
+  KSM: {
+    name: "KSM",
+    symbol: "KSM",
+    decimals: 12,
+    ed: "100000000",
+    toRaw: () => "1",
+  },
+  RSTR: {
+    name: "RSTR",
+    symbol: "RSTR",
+    decimals: 18,
+    ed: "1000000",
+    toRaw: () => "9",
+  },
+  AUSD: {
+    name: "AUSD",
+    symbol: "AUSD",
+    decimals: 12,
+    ed: "10000000000",
+    toRaw: () => "2",
+  },
+  TUR: {
+    name: "TUR",
+    symbol: "TUR",
+    decimals: 10,
+    ed: "100000000",
+    toRaw: () => "0",
+  },
+  SKSM: {
+    name: "SKSM",
+    symbol: "SKSM",
+    decimals: 12,
+    ed: "500000000",
+    toRaw: () => "6",
+  },
+  KAR: {
+    name: "KAR",
+    symbol: "KAR",
+    decimals: 12,
+    ed: "100000000000",
+    toRaw: () => "3",
+  },
+  LKSM: {
+    name: "LKSM",
+    symbol: "LKSM",
+    decimals: 12,
+    ed: "500000000",
+    toRaw: () => "4",
+  },
+};
+
+export const turingDevTokensConfig: Record<string, ExtendedToken> = {
+  TUR: {
+    name: "TUR",
+    symbol: "TUR",
+    decimals: 10,
+    ed: "100000000",
+    toRaw: () => "0",
+  },
+  SBY: {
+    name: "SBY",
+    symbol: "SBY",
+    decimals: 18,
+    ed: "10000000000000000",
+    toRaw: () => "4",
+  },
+  DEV: {
+    name: "DEV",
+    symbol: "DEV",
+    decimals: 18,
+    ed: "1",
+    toRaw: () => "5",
+  },
+  MGR: {
+    name: "MGR",
+    symbol: "MGR",
+    decimals: 18,
+    ed: "0",
+    toRaw: () => "1",
+  },
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -217,4 +349,16 @@ export class TuringAdapter extends BaseOakAdapter {
 	constructor() {
 		super(chains.turing, turingRouteConfigs, turingTokensConfig);
 	}
+}
+
+export class TuringStagingAdapter extends BaseOakAdapter {
+  constructor() {
+    super(chains.turing, turingRouteConfigs, turingStagingTokensConfig);
+  }
+}
+
+export class TuringDevAdapter extends BaseOakAdapter {
+  constructor() {
+    super(chains.turing, turingRouteConfigs, turingDevTokensConfig);
+  }
 }
