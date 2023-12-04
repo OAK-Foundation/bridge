@@ -11,15 +11,76 @@ import { BaseCrossChainAdapter } from "../base-chain-adapter";
 import { ChainId, chains } from "../configs";
 import { ApiNotFound, InvalidAddress, TokenNotFound } from "../errors";
 import { BalanceData, ExtendedToken, TransferParams } from "../types";
-import {
-  validateAddress,
-  createRouteConfigs,
-  createPolkadotXCMDest,
-  createPolkadotXCMAccount,
-  createPolkadotXCMAsset,
-} from "../utils";
+import { validateAddress, createRouteConfigs, createPolkadotXCMDest, createPolkadotXCMAccount, createPolkadotXCMAsset } from "../utils";
 
 type TokenData = ExtendedToken & { toQuery: () => string };
+
+export const astarTokensConfig: Record<string, Record<string, TokenData>> = {
+  astar: {
+    ASTR: {
+      name: "ASTR",
+      symbol: "ASTR",
+      decimals: 18,
+      ed: "1000000",
+    } as TokenData,
+    ACA: {
+      name: "ACA",
+      symbol: "ACA",
+      decimals: 12,
+      ed: "1",
+      toRaw: () => "0x0000000000000000000000000000000000000000000000000000000000000000",
+      toQuery: () => "18446744073709551616",
+    },
+    AUSD: {
+      name: "AUSD",
+      symbol: "AUSD",
+      decimals: 12,
+      ed: "1",
+      toRaw: () => "0x0001000000000000000000000000000000000000000000000000000000000000",
+      toQuery: () => "18446744073709551617",
+    },
+    LDOT: {
+      name: "LDOT",
+      symbol: "LDOT",
+      decimals: 10,
+      ed: "1",
+      toRaw: () => "0x0003000000000000000000000000000000000000000000000000000000000000",
+      toQuery: () => "18446744073709551618",
+    },
+  },
+  shiden: {
+    SDN: {
+      name: "SDN",
+      symbol: "SDN",
+      decimals: 18,
+      ed: "1000000",
+    } as TokenData,
+    KUSD: {
+      name: "KUSD",
+      symbol: "KUSD",
+      decimals: 12,
+      ed: "1",
+      toRaw: () => "0x0081000000000000000000000000000000000000000000000000000000000000",
+      toQuery: () => "18446744073709551616",
+    },
+  },
+  shibuya: {
+    SBY: {
+      name: "SBY",
+      symbol: "SBY",
+      decimals: 18,
+      ed: "1000000",
+    } as TokenData,
+    TUR: {
+      name: "TUR",
+      symbol: "TUR",
+      decimals: 10,
+      ed: "100000000",
+      toRaw: () => "0x0081000000000000000000000000000000000000000000000000000000000000",
+      toQuery: () => "18446744073709551616",
+    },
+  },
+};
 
 export const astarRouteConfigs = createRouteConfigs("astar", [
   {
@@ -66,7 +127,7 @@ export const astarRouteConfigs = createRouteConfigs("astar", [
 
 export const shidenRouteConfigs = createRouteConfigs("shiden", [
   {
-    to: "karura",
+    to: "turing",
     token: "SDN",
     xcm: {
       fee: { token: "SDN", amount: "801280000000000" },
@@ -74,69 +135,25 @@ export const shidenRouteConfigs = createRouteConfigs("shiden", [
     },
   },
   {
-    to: "karura",
-    token: "KUSD",
+    to: "turing",
+    token: "TUR",
     xcm: {
-      fee: { token: "KUSD", amount: "2120203588" },
+      fee: { token: "TUR", amount: "2120203588" },
       weightLimit: "Unlimited",
     },
   },
 ]);
 
-export const astarTokensConfig: Record<string, Record<string, TokenData>> = {
-  astar: {
-    ASTR: {
-      name: "ASTR",
-      symbol: "ASTR",
-      decimals: 18,
-      ed: "1000000",
-    } as TokenData,
-    ACA: {
-      name: "ACA",
-      symbol: "ACA",
-      decimals: 12,
-      ed: "1",
-      toRaw: () =>
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-      toQuery: () => "18446744073709551616",
-    },
-    AUSD: {
-      name: "AUSD",
-      symbol: "AUSD",
-      decimals: 12,
-      ed: "1",
-      toRaw: () =>
-        "0x0001000000000000000000000000000000000000000000000000000000000000",
-      toQuery: () => "18446744073709551617",
-    },
-    LDOT: {
-      name: "LDOT",
-      symbol: "LDOT",
-      decimals: 10,
-      ed: "1",
-      toRaw: () =>
-        "0x0003000000000000000000000000000000000000000000000000000000000000",
-      toQuery: () => "18446744073709551618",
+export const shibuyaRouteConfigs = createRouteConfigs("shiden", [
+  {
+    to: "turing-local",
+    token: "SBY",
+    xcm: {
+      fee: { token: "SBY", amount: "801280000000000" },
+      weightLimit: "Unlimited",
     },
   },
-  shiden: {
-    SDN: {
-      name: "SDN",
-      symbol: "SDN",
-      decimals: 18,
-      ed: "1000000",
-    } as TokenData,
-    KUSD: {
-      name: "KUSD",
-      symbol: "KUSD",
-      decimals: 12,
-      ed: "1",
-      toRaw: () =>
-        "0x0081000000000000000000000000000000000000000000000000000000000000",
-      toQuery: () => "18446744073709551616",
-    },
-  },
-};
+]);
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 const createBalanceStorages = (api: AnyApi) => {
@@ -164,10 +181,7 @@ class AstarBalanceAdapter extends BalanceAdapter {
     this.storages = createBalanceStorages(api);
   }
 
-  public subscribeBalance(
-    token: string,
-    address: string
-  ): Observable<BalanceData> {
+  public subscribeBalance(token: string, address: string): Observable<BalanceData> {
     const storage = this.storages.balances(address);
 
     if (token === this.nativeToken) {
@@ -175,15 +189,9 @@ class AstarBalanceAdapter extends BalanceAdapter {
         map((data) => ({
           free: FN.fromInner(data.freeBalance.toString(), this.decimals),
           locked: FN.fromInner(data.lockedBalance.toString(), this.decimals),
-          reserved: FN.fromInner(
-            data.reservedBalance.toString(),
-            this.decimals
-          ),
-          available: FN.fromInner(
-            data.availableBalance.toString(),
-            this.decimals
-          ),
-        }))
+          reserved: FN.fromInner(data.reservedBalance.toString(), this.decimals),
+          available: FN.fromInner(data.availableBalance.toString(), this.decimals),
+        })),
       );
     }
 
@@ -193,10 +201,7 @@ class AstarBalanceAdapter extends BalanceAdapter {
 
     return this.storages.assets(tokenData.toQuery(), address).observable.pipe(
       map((balance) => {
-        const amount = FN.fromInner(
-          balance.unwrapOrDefault()?.balance?.toString() || "0",
-          this.getToken(token).decimals
-        );
+        const amount = FN.fromInner(balance.unwrapOrDefault()?.balance?.toString() || "0", this.getToken(token).decimals);
 
         return {
           free: amount,
@@ -204,7 +209,7 @@ class AstarBalanceAdapter extends BalanceAdapter {
           reserved: new FN(0),
           available: amount,
         };
-      })
+      }),
     );
   }
 }
@@ -226,10 +231,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
     });
   }
 
-  public subscribeTokenBalance(
-    token: string,
-    address: string
-  ): Observable<BalanceData> {
+  public subscribeTokenBalance(token: string, address: string): Observable<BalanceData> {
     if (!this.balanceAdapter) {
       throw new ApiNotFound(this.chain.id);
     }
@@ -237,11 +239,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
     return this.balanceAdapter.subscribeBalance(token, address);
   }
 
-  public subscribeMaxInput(
-    token: string,
-    address: string,
-    to: ChainId
-  ): Observable<FN> {
+  public subscribeMaxInput(token: string, address: string, to: ChainId): Observable<FN> {
     if (!this.balanceAdapter) {
       throw new ApiNotFound(this.chain.id);
     }
@@ -257,30 +255,20 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
               signer: address,
             })
           : "0",
-      balance: this.balanceAdapter
-        .subscribeBalance(token, address)
-        .pipe(map((i) => i.available)),
+      balance: this.balanceAdapter.subscribeBalance(token, address).pipe(map((i) => i.available)),
     }).pipe(
       map(({ balance, txFee }) => {
         const tokenMeta = this.balanceAdapter?.getToken(token);
         const feeFactor = 1.2;
-        const fee = FN.fromInner(txFee, tokenMeta?.decimals).mul(
-          new FN(feeFactor)
-        );
+        const fee = FN.fromInner(txFee, tokenMeta?.decimals).mul(new FN(feeFactor));
 
         // always minus ed
-        return balance
-          .minus(fee)
-          .minus(FN.fromInner(tokenMeta?.ed || "0", tokenMeta?.decimals));
-      })
+        return balance.minus(fee).minus(FN.fromInner(tokenMeta?.ed || "0", tokenMeta?.decimals));
+      }),
     );
   }
 
-  public oldCreateTx(
-    params: TransferParams
-  ):
-    | SubmittableExtrinsic<"promise", ISubmittableResult>
-    | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
+  public oldCreateTx(params: TransferParams): SubmittableExtrinsic<"promise", ISubmittableResult> | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
     if (!this.api) throw new ApiNotFound(this.chain.id);
 
     const { address, amount, to, token } = params;
@@ -297,7 +285,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
         createPolkadotXCMDest(this.api, toChain.paraChainId) as any,
         createPolkadotXCMAccount(this.api, accountId) as any,
         createPolkadotXCMAsset(this.api, rawAmount, "NATIVE") as any,
-        0
+        0,
       );
     }
 
@@ -319,19 +307,12 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
     return this.api?.tx.polkadotXcm.reserveWithdrawAssets(
       createPolkadotXCMDest(this.api, toChain.paraChainId),
       createPolkadotXCMAccount(this.api, accountId),
-      createPolkadotXCMAsset(this.api, rawAmount, [
-        { Parachain: paraChainId },
-        { GeneralKey: { length: 2, data: tokenId } },
-      ]),
-      0
+      createPolkadotXCMAsset(this.api, rawAmount, [{ Parachain: paraChainId }, { GeneralKey: { length: 2, data: tokenId } }]),
+      0,
     );
   }
 
-  public createTx(
-    params: TransferParams
-  ):
-    | SubmittableExtrinsic<"promise", ISubmittableResult>
-    | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
+  public createTx(params: TransferParams): SubmittableExtrinsic<"promise", ISubmittableResult> | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
     if (!this.api) throw new ApiNotFound(this.chain.id);
 
     if (this.chain.id === "astar" || !this.api.tx.xtokens) {
@@ -368,7 +349,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
             },
           },
         },
-        "Unlimited"
+        "Unlimited",
       );
     }
 
@@ -382,10 +363,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
             Concrete: {
               parents: 1,
               interior: {
-                X2: [
-                  { Parachain: toChain.paraChainId },
-                  { GeneralKey: { length: 2, data: tokenData.toRaw() } },
-                ],
+                X2: [{ Parachain: toChain.paraChainId }, { GeneralKey: { length: 2, data: tokenData.toRaw() } }],
               },
             },
           },
@@ -406,7 +384,7 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
           },
         },
       },
-      "Unlimited"
+      "Unlimited",
     );
   }
 }
@@ -420,5 +398,11 @@ export class AstarAdapter extends BaseAstarAdapter {
 export class ShidenAdapter extends BaseAstarAdapter {
   constructor() {
     super(chains.shiden, shidenRouteConfigs, astarTokensConfig.shiden);
+  }
+}
+
+export class ShibuyaAdapter extends BaseAstarAdapter {
+  constructor() {
+    super(chains.shibuya, shibuyaRouteConfigs, astarTokensConfig.shibuya);
   }
 }
