@@ -1,8 +1,12 @@
 import { Chain } from "../../types";
+import { devChains } from "./dev-chains";
+import { rococoChains } from "./rococo-chains";
 import { kusamaChains } from "./kusama-chains";
 import { polkadotChains } from "./polkadot-chains";
 
 export const rawChains = {
+  ...devChains,
+  ...rococoChains,
   ...kusamaChains,
   ...polkadotChains,
 };
