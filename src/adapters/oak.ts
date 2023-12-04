@@ -3,7 +3,6 @@ import { AnyApi, FixedPointNumber as FN } from "@acala-network/sdk-core";
 import { combineLatest, map, Observable } from "rxjs";
 
 import { SubmittableExtrinsic } from "@polkadot/api/types";
-import { DeriveBalancesAll } from "@polkadot/api-derive/balances/types";
 import { ISubmittableResult } from "@polkadot/types/types";
 
 import { BalanceAdapter, BalanceAdapterConfigs } from "../balance-adapter";
@@ -86,13 +85,14 @@ export const turingTokensConfig: Record<string, ExtendedToken> = {
     ed: "500000000",
     toRaw: () => 4,
   },
-  MGX: {
-    name: "MGX",
-    symbol: "MGX",
-    decimals: 18,
-    ed: "0",
-    toRaw: () => -1,
-  },
+  // MGX is not registered on Turing yet
+  //   MGX: {
+  //     name: "MGX",
+  //     symbol: "MGX",
+  //     decimals: ,
+  //     ed: "",
+  //     toRaw: () => ,
+  //   },
 };
 
 export const turingRouteConfigs = createRouteConfigs("turing", [
@@ -259,10 +259,10 @@ export const turingLocalRouteConfigs = createRouteConfigs("turing-local", [
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 const createBalanceStorages = (api: AnyApi) => {
   return {
-    balances: (address: string) =>
-      Storage.create<DeriveBalancesAll>({
+    system: (address: string) =>
+      Storage.create<any>({
         api,
-        path: "derive.balances.all",
+        path: "query.system.account",
         params: [address],
       }),
     assets: (address: string, token: string) =>
@@ -285,35 +285,33 @@ class OakBalanceAdapter extends BalanceAdapter {
   public subscribeBalance(token: string, address: string): Observable<BalanceData> {
     if (!validateAddress(address)) throw new InvalidAddress(address);
 
-    const storage = this.storages.balances(address);
-
     if (token === this.nativeToken) {
-      return storage.observable.pipe(
-        map((data) => ({
-          free: FN.fromInner(data.freeBalance.toString(), this.decimals),
-          locked: FN.fromInner(data.lockedBalance.toString(), this.decimals),
-          reserved: FN.fromInner(data.reservedBalance.toString(), this.decimals),
-          available: FN.fromInner(data.availableBalance.toString(), this.decimals),
-        })),
+      return this.storages.system(address).observable.pipe(
+        map((data) => {
+          return {
+            free: FN.fromInner(data.data.free?.toString(), this.decimals),
+            locked: FN.fromInner(data.data.feeFrozen?.toString(), this.decimals),
+            reserved: FN.fromInner(data.data.reserved?.toString(), this.decimals),
+            available: FN.fromInner(data.data.free?.toString(), this.decimals),
+          };
+        }),
+      );
+    } else {
+      const tokenData: ExtendedToken = this.getToken(token);
+
+      if (!tokenData) throw new TokenNotFound(token);
+
+      return this.storages.assets(address, tokenData.toRaw()).observable.pipe(
+        map((balance) => {
+          return {
+            free: FN.fromInner(balance.free?.toString(), this.decimals),
+            locked: FN.fromInner(balance.frozen?.toString(), this.decimals),
+            reserved: FN.fromInner(balance.reserved?.toString(), this.decimals),
+            available: FN.fromInner(balance.free?.toString(), this.decimals),
+          };
+        }),
       );
     }
-
-    const tokenData: ExtendedToken = this.getToken(token);
-
-    if (!tokenData) throw new TokenNotFound(token);
-
-    return this.storages.assets(address, tokenData.toRaw()).observable.pipe(
-      map((balance) => {
-        const amount = FN.fromInner(balance.free?.toString() || "0", tokenData.toRaw());
-
-        return {
-          free: amount,
-          locked: new FN(0),
-          reserved: new FN(0),
-          available: amount,
-        };
-      }),
-    );
   }
 }
 

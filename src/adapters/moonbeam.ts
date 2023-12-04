@@ -1,5 +1,5 @@
 import { AnyApi, FixedPointNumber as FN, Token } from "@acala-network/sdk-core";
-import { Observable, map } from "rxjs";
+import { Observable, map, EMPTY } from "rxjs";
 import { Storage } from "@acala-network/sdk/utils/storage";
 
 import { SubmittableExtrinsic } from "@polkadot/api/types";
@@ -11,6 +11,7 @@ import { ChainId, chains } from "../configs";
 import { ApiNotFound, InvalidAddress, TokenNotFound } from "../errors";
 import { BalanceData, BasicToken, ExtendedToken, TransferParams } from "../types";
 import { createRouteConfigs } from "../utils";
+import { validateEthereumAddress } from "../utils";
 
 type TokenData = ExtendedToken & { toQuery: () => string };
 
@@ -20,9 +21,9 @@ export const moonbeamTokensConfig: Record<string, TokenData> = {
     symbol: "GLMR",
     decimals: 18,
     ed: "100000000000000000",
-	toRaw: () => "0x0000000000000000000000000000000000000000000000000000000000000000",
+    toRaw: () => "0x0000000000000000000000000000000000000000000000000000000000000000",
     toQuery: () => "0", // "0" means this is the chain’s native token
-  }
+  },
 };
 
 export const moonriverTokensConfig: Record<string, TokenData> = {
@@ -32,7 +33,7 @@ export const moonriverTokensConfig: Record<string, TokenData> = {
     decimals: 18,
     ed: "1000000000000000",
     toRaw: () => "0x0000000000000000000000000000000000000000000000000000000000000000",
-    toQuery: () => "0", // "0" means this is the chain’s native token
+    toQuery: () => "0", // "0" is a placeholder, the first element is nativeToken and retrieved different
   },
   xcCSM: {
     name: "Crust Shadow Native Token",
@@ -266,51 +267,41 @@ class MoonbeamBalanceAdapter extends BalanceAdapter {
   }
 
   public subscribeBalance(token: string, address: string): Observable<BalanceData> {
-    console.log("token", token, "address", address);
-    // const storage = this.storages.balances(address);
-    // console.log("storages.balances", address);
-
-    // if (token === this.nativeToken) {
-    // 	return storage.observable.pipe(
-    // 		map((data) => ({
-    // 			free: FN.fromInner(data.freeBalance.toString(), this.decimals),
-    // 			locked: FN.fromInner(data.lockedBalance.toString(), this.decimals),
-    // 			reserved: FN.fromInner(data.reservedBalance.toString(), this.decimals),
-    // 			available: FN.fromInner(data.availableBalance.toString(), this.decimals),
-    // 		})),
-    // 	);
-    // }
+    // Return early if address is not a valid Ethereum address
+    if (!validateEthereumAddress(address)) {
+      return EMPTY;
+    }
 
     const tokenData: TokenData = this.getToken(token);
 
     if (!tokenData) throw new TokenNotFound(token);
 
-    console.log("tokenData", tokenData);
-    if (tokenData.toQuery() === "0") {
+    if (token === this.nativeToken) {
       // Interpret Native token
       return this.storages.system(address).observable.pipe(
         map((data) => {
-          console.log("storages.system", address, "data.toHuman()", data.toHuman());
+          console.log("storages.system", "token", token, address, "data.toHuman()", data.toHuman());
           return {
-            free: FN.fromInner(data.freeze.toString(), this.decimals),
+            free: FN.fromInner(data.free.toString(), this.decimals),
             reserved: FN.fromInner(data.reserved.toString(), this.decimals),
             locked: FN.fromInner(data.frozen.toString(), this.decimals),
-            available: FN.fromInner(data.freeze.toString(), this.decimals),
+            available: FN.fromInner(data.free.toString(), this.decimals),
           };
         }),
       );
     } else {
+      const tokenData: TokenData = this.getToken(token);
+      if (!tokenData) throw new TokenNotFound(token);
+
       // Interpret ERC20 tokens
       return this.storages.assets(tokenData.toQuery(), address).observable.pipe(
         map((balance) => {
-          console.log("storages.assets", tokenData.toQuery(), address, "balance.toHuman()", balance.toHuman());
-          const amount = FN.fromInner(balance.unwrapOrDefault()?.balance?.toString() || "0", this.getToken(token).decimals);
-
+          console.log("storages.assets", tokenData, address, "balance.toHuman()", balance.toHuman());
           return {
-            free: amount,
+            free: FN.fromInner(balance.unwrapOrDefault()?.balance?.toString(), tokenData.decimals),
             locked: new FN(0),
             reserved: new FN(0),
-            available: amount,
+            available: FN.fromInner(balance.unwrapOrDefault()?.balance?.toString(), tokenData.decimals),
           };
         }),
       );
