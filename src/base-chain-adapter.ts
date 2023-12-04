@@ -1,31 +1,12 @@
-import {
-  AnyApi,
-  FixedPointNumber,
-  FixedPointNumber as FN,
-} from "@acala-network/sdk-core";
-import {
-  firstValueFrom,
-  combineLatest,
-  from,
-  Observable,
-  of,
-  timeout,
-  TimeoutError,
-} from "rxjs";
+import { AnyApi, FixedPointNumber, FixedPointNumber as FN } from "@acala-network/sdk-core";
+import { firstValueFrom, combineLatest, from, Observable, of, timeout, TimeoutError } from "rxjs";
 import { catchError, map } from "rxjs/operators";
 
 import { SubmittableExtrinsic } from "@polkadot/api/types";
 import { ISubmittableResult } from "@polkadot/types/types";
 
 import { ChainId, chains } from "./configs";
-import {
-  AdapterNotFound,
-  ApiNotFound,
-  InvalidAddress,
-  ModuleNotFound,
-  RouterConfigNotFound,
-  TokenNotFound,
-} from "./errors";
+import { AdapterNotFound, ApiNotFound, InvalidAddress, ModuleNotFound, RouterConfigNotFound, TokenNotFound } from "./errors";
 import {
   BalanceChangeStatue,
   BalanceData,
@@ -39,12 +20,7 @@ import {
   ExtendedToken,
   TransferParamsWithSigner,
 } from "./types";
-import {
-  createXTokensDestParam,
-  createXTokensWeight,
-  isChainEqual,
-  validateAddress,
-} from "./utils";
+import { createXTokensDestParam, createXTokensWeight, isChainEqual, validateAddress } from "./utils";
 
 const DEFAULT_TX_CHECKING_TIMEOUT = 2 * 60 * 1000;
 
@@ -56,11 +32,7 @@ export abstract class BaseCrossChainAdapter {
   // @ts-ignore
   private findAdapter!: (chain: Chain | ChainId) => BaseCrossChainAdapter;
 
-  constructor(
-    chain: Chain,
-    routers: RouteConfigs[],
-    tokens: Record<string, BasicToken>
-  ) {
+  constructor(chain: Chain, routers: RouteConfigs[], tokens: Record<string, BasicToken>) {
     this.chain = chain;
     this.routers = routers;
     this.tokens = tokens;
@@ -72,9 +44,7 @@ export abstract class BaseCrossChainAdapter {
     return this.api;
   }
 
-  public injectFindAdapter(
-    func: (chain: ChainId | Chain) => BaseCrossChainAdapter
-  ): void {
+  public injectFindAdapter(func: (chain: ChainId | Chain) => BaseCrossChainAdapter): void {
     this.findAdapter = func;
   }
 
@@ -89,9 +59,7 @@ export abstract class BaseCrossChainAdapter {
     return Number(this.api?.registry.chainSS58?.toString());
   }
 
-  public subscribeInputConfig(
-    params: Omit<TransferParamsWithSigner, "amount">
-  ): Observable<InputConfig> {
+  public subscribeInputConfig(params: Omit<TransferParamsWithSigner, "amount">): Observable<InputConfig> {
     const { signer, to, token } = params;
 
     const destFee = this.getCrossChainFee(token, to);
@@ -117,7 +85,7 @@ export abstract class BaseCrossChainAdapter {
           destFee,
           estimateFee,
         };
-      })
+      }),
     );
   }
 
@@ -128,21 +96,14 @@ export abstract class BaseCrossChainAdapter {
   public subscribeMinInput(token: string, to: ChainId): Observable<FN> {
     const destFee = this.getCrossChainFee(token, to);
 
-    return of(
-      this.getDestED(token, to).balance.add(
-        destFee.token === token ? destFee.balance : FN.ZERO
-      )
-    );
+    return of(this.getDestED(token, to).balance.add(destFee.token === token ? destFee.balance : FN.ZERO));
   }
 
   public getMinInput(token: string, to: ChainId) {
     return firstValueFrom(this.subscribeMinInput(token, to));
   }
 
-  public getToken<R extends BasicToken = BasicToken>(
-    token: string,
-    chain?: ChainId
-  ): R {
+  public getToken<R extends BasicToken = BasicToken>(token: string, chain?: ChainId): R {
     let tokenConfig: BasicToken;
 
     if (!chain) return this.tokens[token] as R;
@@ -174,9 +135,7 @@ export abstract class BaseCrossChainAdapter {
   }
 
   public getCrossChainFee(token: string, destChain: ChainId): TokenBalance {
-    const router = this.routers.find(
-      (e) => e.to === destChain && e.token === token
-    );
+    const router = this.routers.find((e) => e.to === destChain && e.token === token);
 
     if (!router) {
       throw new RouterConfigNotFound(token, destChain, this.chain.id);
@@ -186,20 +145,12 @@ export abstract class BaseCrossChainAdapter {
 
     return {
       token: feeToken,
-      balance: FN.fromInner(
-        router.xcm?.fee?.amount || 0,
-        this.getToken(feeToken, destChain).decimals
-      ),
+      balance: FN.fromInner(router.xcm?.fee?.amount || 0, this.getToken(feeToken, destChain).decimals),
     };
   }
 
-  public getDestWeight(
-    token: string,
-    destChain: ChainId
-  ): string | "Unlimited" | "Limited" | undefined {
-    const router = this.routers.find(
-      (e) => e.to === destChain && e.token === token
-    );
+  public getDestWeight(token: string, destChain: ChainId): string | "Unlimited" | "Limited" | undefined {
+    const router = this.routers.find((e) => e.to === destChain && e.token === token);
 
     if (!router) {
       throw new RouterConfigNotFound(token, destChain, this.chain.id);
@@ -226,7 +177,7 @@ export abstract class BaseCrossChainAdapter {
           console.debug(`fetch payment info failed, ${e}`);
 
           return "0";
-        })
+        }),
       );
     }
 
@@ -238,7 +189,7 @@ export abstract class BaseCrossChainAdapter {
         const feeData = await tx.paymentInfo(params.signer);
 
         return feeData.partialFee.toString();
-      })()
+      })(),
     );
   }
 
@@ -246,9 +197,7 @@ export abstract class BaseCrossChainAdapter {
     return firstValueFrom(this.estimateTxFee(params));
   }
 
-  public subscribeBalanceChange(
-    configs: BalanceChangeConfig
-  ): Observable<BalanceChangeStatue> {
+  public subscribeBalanceChange(configs: BalanceChangeConfig): Observable<BalanceChangeStatue> {
     const { address, amount, token, tolerance } = configs;
     // allow 1% tolerance as default
     const target = amount.mul(new FN(1 - (tolerance || 0.01)));
@@ -276,14 +225,11 @@ export abstract class BaseCrossChainAdapter {
         }
 
         return of(BalanceChangeStatue.UNKNOWN_ERROR);
-      })
+      }),
     );
   }
 
-  public watchBalanceChange(
-    config: BalanceChangeConfig,
-    callback: (error?: Error, status?: BalanceChangeStatue) => void
-  ) {
+  public watchBalanceChange(config: BalanceChangeConfig, callback: (error?: Error, status?: BalanceChangeStatue) => void) {
     const subscriber = this.subscribeBalanceChange(config).subscribe({
       next: (status) => callback(undefined, status),
       error: (e) => callback(e, undefined),
@@ -292,48 +238,40 @@ export abstract class BaseCrossChainAdapter {
     return subscriber.unsubscribe;
   }
 
-  public abstract subscribeTokenBalance(
-    token: string,
-    address: string
-  ): Observable<BalanceData>;
+  public abstract subscribeTokenBalance(token: string, address: string): Observable<BalanceData>;
 
   public getTokenBalance(token: string, address: string): Promise<BalanceData> {
     return firstValueFrom(this.subscribeTokenBalance(token, address));
   }
 
-  public abstract subscribeMaxInput(
-    token: string,
-    address: string,
-    to: ChainId
-  ): Observable<FN>;
+  public abstract subscribeMaxInput(token: string, address: string, to: ChainId): Observable<FN>;
 
   public getMaxInput(token: string, address: string, to: ChainId): Promise<FN> {
     return firstValueFrom(this.subscribeMaxInput(token, address, to));
   }
 
   public abstract createTx(
-    params: TransferParams
-  ):
-    | SubmittableExtrinsic<"promise", ISubmittableResult>
-    | SubmittableExtrinsic<"rxjs", ISubmittableResult>;
+    params: TransferParams,
+  ): SubmittableExtrinsic<"promise", ISubmittableResult> | SubmittableExtrinsic<"rxjs", ISubmittableResult>;
 
   // create xtokens.transfer tx
   public createXTokensTx(
-    params: TransferParams
-  ):
-    | SubmittableExtrinsic<"promise", ISubmittableResult>
-    | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
+    params: TransferParams,
+  ): SubmittableExtrinsic<"promise", ISubmittableResult> | SubmittableExtrinsic<"rxjs", ISubmittableResult> {
     if (!this.api) throw new ApiNotFound(this.chain.id);
 
     const { address, amount, to, token } = params;
 
-    if (!validateAddress(address)) throw new InvalidAddress(address);
+    const useAccountKey20 = isChainEqual(to, "moonbeam") || isChainEqual(to, "moonriver") || isChainEqual(to, "shiden");
+
+    if (!validateAddress(address, useAccountKey20 ? "ethereum" : "substract")) {
+      throw new InvalidAddress(address);
+    }
 
     const tokenData: ExtendedToken = this.getToken(token);
     const toChain = chains[to];
-    const accountId = this.api?.createType("AccountId32", address).toHex();
-    const isToRelayChain =
-      isChainEqual(toChain, "kusama") || isChainEqual(toChain, "polkadot");
+    const accountId = useAccountKey20 ? address : this.api?.createType("AccountId32", address).toHex();
+    const isToRelayChain = isChainEqual(toChain, "kusama") || isChainEqual(toChain, "polkadot");
 
     if (!tokenData) throw new TokenNotFound(token);
 
@@ -345,7 +283,7 @@ export abstract class BaseCrossChainAdapter {
           isToRelayChain,
         }),
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        createXTokensWeight(this.api, this.getDestWeight(token, to)!)
+        createXTokensWeight(this.api, this.getDestWeight(token, to)!),
       );
     }
 
@@ -354,10 +292,11 @@ export abstract class BaseCrossChainAdapter {
         tokenData.toRaw(),
         amount.toChainData(),
         createXTokensDestParam(this.api, toChain.paraChainId, accountId, {
+          useAccountKey20,
           isToRelayChain,
         }) as any,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        createXTokensWeight(this.api, this.getDestWeight(token, to)!)
+        createXTokensWeight(this.api, this.getDestWeight(token, to)!),
       );
     }
 
