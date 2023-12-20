@@ -273,30 +273,31 @@ class MoonbeamBalanceAdapter extends BalanceAdapter {
     }
 
     const tokenData: TokenData = this.getToken(token);
-
+    
     if (!tokenData) throw new TokenNotFound(token);
 
-    if (token === this.nativeToken) {
+    if (tokenData.toQuery() === "0") {  // Native token
       // Interpret Native token
       return this.storages.system(address).observable.pipe(
-        map((data) => {
-          console.log("storages.system", "token", token, address, "data.toHuman()", data.toHuman());
+        map((result) => {
+          const formattedData: BalanceData={
+            free: result?.data?.free.sub(result?.data?.frozen),
+            reserved: result?.data?.reserved,
+            locked: result?.data?.frozen,
+            available: result?.data?.free.add(result?.data?.reserved)
+          }
           return {
-            free: FN.fromInner(data.free.toString(), this.decimals),
-            reserved: FN.fromInner(data.reserved.toString(), this.decimals),
-            locked: FN.fromInner(data.frozen.toString(), this.decimals),
-            available: FN.fromInner(data.free.toString(), this.decimals),
+            free: FN.fromInner(formattedData.free.toString(), tokenData.decimals),
+            reserved: FN.fromInner(formattedData.reserved.toString(), tokenData.decimals),
+            locked: FN.fromInner(formattedData.locked.toString(), tokenData.decimals),
+            available: FN.fromInner(formattedData.available.toString(), tokenData.decimals),
           };
         }),
       );
     } else {
-      const tokenData: TokenData = this.getToken(token);
-      if (!tokenData) throw new TokenNotFound(token);
-
       // Interpret ERC20 tokens
       return this.storages.assets(tokenData.toQuery(), address).observable.pipe(
         map((balance) => {
-          console.log("storages.assets", tokenData, address, "balance.toHuman()", balance.toHuman());
           return {
             free: FN.fromInner(balance.unwrapOrDefault()?.balance?.toString(), tokenData.decimals),
             locked: new FN(0),
