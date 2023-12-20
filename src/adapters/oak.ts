@@ -285,22 +285,29 @@ class OakBalanceAdapter extends BalanceAdapter {
   public subscribeBalance(token: string, address: string): Observable<BalanceData> {
     if (!validateAddress(address)) throw new InvalidAddress(address);
 
+    const tokenData: ExtendedToken = this.getToken(token);
+    if (!tokenData) throw new TokenNotFound(token);
+
     if (token === this.nativeToken) {
       return this.storages.system(address).observable.pipe(
-        map((data) => {
+        map((result) => {
+          const formattedData: BalanceData={
+            free: result?.data?.free.sub(result?.data?.frozen),
+            reserved: result?.data?.reserved,
+            locked: result?.data?.frozen,
+            available: result?.data?.free.add(result?.data?.reserved)
+          }
+
           return {
-            free: FN.fromInner(data.data.free?.toString(), this.decimals),
-            locked: FN.fromInner(data.data.feeFrozen?.toString(), this.decimals),
-            reserved: FN.fromInner(data.data.reserved?.toString(), this.decimals),
-            available: FN.fromInner(data.data.free?.toString(), this.decimals),
+            free: FN.fromInner(formattedData.free.toString(), tokenData.decimals),
+            reserved: FN.fromInner(formattedData.reserved.toString(), tokenData.decimals),
+            locked: FN.fromInner(formattedData.locked.toString(), tokenData.decimals),
+            available: FN.fromInner(formattedData.available.toString(), tokenData.decimals),
           };
         }),
       );
     } else {
-      const tokenData: ExtendedToken = this.getToken(token);
-
-      if (!tokenData) throw new TokenNotFound(token);
-
+   
       return this.storages.assets(address, tokenData.toRaw()).observable.pipe(
         map((balance) => {
           return {
@@ -347,12 +354,12 @@ class BaseOakAdapter extends BaseCrossChainAdapter {
       txFee:
         token === this.balanceAdapter?.nativeToken
           ? this.estimateTxFee({
-              amount: FN.ZERO,
-              to,
-              token,
-              address,
-              signer: address,
-            })
+            amount: FN.ZERO,
+            to,
+            token,
+            address,
+            signer: address,
+          })
           : "0",
       balance: this.balanceAdapter.subscribeBalance(token, address).pipe(map((i) => i.available)),
     }).pipe(
