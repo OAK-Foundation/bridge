@@ -182,22 +182,23 @@ class AstarBalanceAdapter extends BalanceAdapter {
   }
 
   public subscribeBalance(token: string, address: string): Observable<BalanceData> {
-    const storage = this.storages.balances(address);
-
-    if (token === this.nativeToken) {
-      return storage.observable.pipe(
-        map((data) => ({
-          free: FN.fromInner(data.freeBalance.toString(), this.decimals),
-          locked: FN.fromInner(data.lockedBalance.toString(), this.decimals),
-          reserved: FN.fromInner(data.reservedBalance.toString(), this.decimals),
-          available: FN.fromInner(data.availableBalance.toString(), this.decimals),
-        })),
-      );
-    }
 
     const tokenData: TokenData = this.getToken(token);
 
     if (!tokenData) throw new TokenNotFound(token);
+
+    if (token === this.nativeToken) {
+      return this.storages.balances(address).observable.pipe(
+        map((data) => {
+          return {
+            free: FN.fromInner(data.availableBalance.toString(), this.decimals),
+            locked: FN.fromInner(data.lockedBalance.toString(), this.decimals),
+            reserved: FN.fromInner(data.reservedBalance.toString(), this.decimals),
+            available: FN.fromInner(data.freeBalance.toString(), this.decimals),
+          };
+        }),
+      );
+    }
 
     return this.storages.assets(tokenData.toQuery(), address).observable.pipe(
       map((balance) => {
@@ -248,12 +249,12 @@ class BaseAstarAdapter extends BaseCrossChainAdapter {
       txFee:
         token === this.balanceAdapter?.nativeToken
           ? this.estimateTxFee({
-              amount: FN.ZERO,
-              to,
-              token,
-              address,
-              signer: address,
-            })
+            amount: FN.ZERO,
+            to,
+            token,
+            address,
+            signer: address,
+          })
           : "0",
       balance: this.balanceAdapter.subscribeBalance(token, address).pipe(map((i) => i.available)),
     }).pipe(
